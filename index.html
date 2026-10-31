@@ -139,6 +139,14 @@ button{font:inherit;color:inherit}
 .insight{background:var(--body-soft);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45}
 .notes ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14px}
 .notes li::marker{color:var(--body)}
+/* text habits */
+.row textarea{width:100%;font:inherit;font-size:15px;line-height:1.45;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;min-height:64px;margin-top:8px}
+.row .chk.tap{cursor:pointer}
+.diary{display:flex;flex-direction:column;gap:10px}
+.diary .e{padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.diary .e b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.diary .e p{margin:0;white-space:pre-wrap;line-height:1.45}
+.diary .e p+b{margin-top:8px}
 /* affirmation */
 .aff{background:linear-gradient(135deg,var(--mind-soft),var(--body-soft));border:1px solid var(--line)}
 .aff p{font-family:var(--display);font-size:20px;line-height:1.3;margin:6px 0 10px;text-wrap:balance}
@@ -191,6 +199,7 @@ button{font:inherit;color:inherit}
       <div class="legend"><span><i style="background:var(--track)"></i>Nothing yet</span><span><i style="background:var(--partial)"></i>A few</span><span><i style="background:var(--good)"></i>More than half</span><span><i style="background:var(--full)"></i>All done</span><span>· small dot = mood</span></div>
     </div>
     <div class="card" id="calday"></div>
+    <div class="card" id="diary"></div>
   </section>
   <section class="view" id="v-stats" hidden></section>
   <p class="sync" id="sync">Loading…</p>
@@ -212,8 +221,8 @@ const HABITS=[
   {k:'nojunk',g:'body',name:'No junk food',desc:'Less fried food and sugar'},
   {k:'home',g:'body',name:'Home-cooked food',desc:'Eat meals made at home, not outside'},
   {k:'read',g:'mind',name:'Book reading',desc:'20 minutes or 10 pages'},
-  {k:'affirm',g:'mind',name:'Affirmation',desc:'Say a positive line, write it in your notebook'},
-  {k:'grat',g:'mind',name:'Gratitude writing',desc:'Write 3 things you are grateful for today'},
+  {k:'affirm',g:'mind',name:'Affirmation',desc:'Write your own positive line for today',type:'text',ph:'Today I am…'},
+  {k:'grat',g:'mind',name:'Gratitude writing',desc:'Three things you are grateful for today',type:'text',ph:'1. \n2. \n3. '},
   {k:'medit',g:'mind',name:'Meditation',desc:'5–10 minutes to calm the mind'},
   {k:'screen',g:'mind',name:'Screen break',desc:'No phone 30 minutes before bed'},
   {k:'wake',g:'routine',name:'Wake up early',desc:'Start the day calmly, with more time'}
@@ -266,6 +275,7 @@ function dayData(k){return days[k]||{done:{},steps:0,water:0,mood:0}}
 function isDone(d,h){
   if(h.type==='steps') return (d.steps||0)>=settings.stepsGoal;
   if(h.type==='water') return (d.water||0)>=WATER;
+  if(h.type==='text') return !!(d.done&&d.done[h.k])||!!(d.text&&d.text[h.k]&&d.text[h.k].trim());
   return !!(d.done&&d.done[h.k]);
 }
 function countDone(k){const d=dayData(k);return activeHabits().filter(h=>isDone(d,h)).length}
@@ -319,14 +329,14 @@ async function startCloud(u){
   setSync('Connecting to your account…');
   try{
     const [ds,ss]=await Promise.all([userRef.collection('days').get(),userRef.collection('meta').doc('settings').get()]);
-    const cloudDays={};ds.forEach(d=>{const x=d.data();cloudDays[d.id]={done:{...(x.done||{})},steps:x.steps||0,water:x.water||0,mood:x.mood||0}});
+    const cloudDays={};ds.forEach(d=>{const x=d.data();cloudDays[d.id]={done:{...(x.done||{})},steps:x.steps||0,water:x.water||0,mood:x.mood||0,text:{...(x.text||{})}}});
     // first sign-in on this device: push local-only days up, never overwrite cloud
-    const localOnly=Object.keys(days).filter(k=>!cloudDays[k]&&countDone(k)+(days[k].mood?1:0)>0);
+    const localOnly=Object.keys(days).filter(k=>!cloudDays[k]&&countDone(k)+(days[k].mood?1:0)+Object.values(days[k].text||{}).join('').trim().length>0);
     if(localOnly.length){const b=firebase.firestore().batch();localOnly.forEach(k=>b.set(userRef.collection('days').doc(k),{...days[k],date:k}));await b.commit()}
     if(!ss.exists&&settings.stepsGoal!==8000)await userRef.collection('meta').doc('settings').set(settings);
   }catch(e){setSync('Could not load account data: '+(e.message||e.code));return}
   unsub=userRef.collection('days').onSnapshot(snap=>{
-    const nd={};snap.forEach(d=>{const x=d.data();nd[d.id]={done:{...(x.done||{})},steps:x.steps||0,water:x.water||0,mood:x.mood||0}});
+    const nd={};snap.forEach(d=>{const x=d.data();nd[d.id]={done:{...(x.done||{})},steps:x.steps||0,water:x.water||0,mood:x.mood||0,text:{...(x.text||{})}}});
     days=nd;saveLocal();render();
     if(!snap.metadata.hasPendingWrites)setSync('Saved to your account, available on all your devices.');
   },e=>setSync('Sync error: '+(e.message||e.code)));
@@ -347,7 +357,8 @@ function ensure(k){if(!days[k])days[k]={done:{},steps:0,water:0,mood:0};return d
 function toggle(hk){if(selected>TODAY)return;const d=ensure(selected);d.done={...d.done,[hk]:!d.done[hk]};saveDay(selected);render()}
 function setWater(n){if(selected>TODAY)return;const d=ensure(selected);d.water=(d.water===n)?n-1:n;saveDay(selected);render()}
 function setMood(v){if(selected>TODAY)return;const d=ensure(selected);d.mood=(d.mood===v)?0:v;saveDay(selected);render()}
-let stepTimer=null;
+let stepTimer=null, textTimer=null;
+function setText(k,v){const d=ensure(selected);d.text={...(d.text||{}),[k]:v};clearTimeout(textTimer);textTimer=setTimeout(()=>saveDay(selected),700);renderLight()}
 function setSteps(v){const d=ensure(selected);d.steps=Math.max(0,parseInt(v,10)||0);clearTimeout(stepTimer);stepTimer=setTimeout(()=>saveDay(selected),600);renderLight()}
 
 /* ---------- stats helpers ---------- */
@@ -381,6 +392,11 @@ function habitListHTML(k){
           ${editingGoal?`<div class="goal-edit"><input id="goal-in" type="number" min="500" step="500" value="${settings.stepsGoal}" aria-label="Steps goal"><button id="goal-save">Save</button></div>`:''}
           <div class="steps-in"><input id="steps-in" type="number" inputmode="numeric" min="0" placeholder="0" value="${d.steps||''}" ${fut?'disabled':''} aria-label="Steps"><label for="steps-in" id="steps-lbl">${Math.round(pct)}% of goal</label></div>
           <div class="mini"><div id="steps-bar" style="width:${pct}%"></div></div></div></div>`;
+      }else if(hb.type==='text'){
+        const val=(d.text&&d.text[hb.k])||'';
+        h+=`<div class="row ${done?'done':''}" id="row-${hb.k}"><button class="chk tap" data-h="${hb.k}" aria-label="Tick ${hb.name}" ${fut?'disabled':''}>${CHECK}</button><div>
+          <div class="hname">${hb.name}</div><div class="hdesc">${hb.desc}</div>
+          <textarea id="txt-${hb.k}" data-t="${hb.k}" rows="3" placeholder="${hb.ph}" ${fut?'disabled':''} aria-label="${hb.name}">${esc(val)}</textarea></div></div>`;
       }else if(hb.type==='water'){
         let gl='';for(let i=1;i<=WATER;i++)gl+=`<button class="glass ${i<=(d.water||0)?'full':''}" data-w="${i}" ${fut?'disabled':''} aria-label="Glass ${i}"></button>`;
         h+=`<div class="row ${done?'done':''}"><div class="chk" style="margin-top:2px">${CHECK}</div><div>
@@ -444,7 +460,8 @@ function moodHTML(k){
 }
 function wireList(root){
   const mb=root.querySelector('#manage-btn');if(mb)mb.onclick=()=>{managing=true;if(view!=='today'){view='today';['today','calendar','stats'].forEach(n=>document.getElementById('v-'+n).hidden=n!=='today');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v==='today'))}render();window.scrollTo(0,0)};
-  root.querySelectorAll('.habit').forEach(b=>b.onclick=()=>toggle(b.dataset.h));
+  root.querySelectorAll('.habit,.chk.tap').forEach(b=>b.onclick=()=>toggle(b.dataset.h));
+  root.querySelectorAll('textarea[data-t]').forEach(t=>t.oninput=e=>setText(t.dataset.t,e.target.value));
   root.querySelectorAll('.glass').forEach(b=>b.onclick=()=>setWater(+b.dataset.w));
   root.querySelectorAll('.mood').forEach(b=>b.onclick=()=>setMood(+b.dataset.m));
   const si=root.querySelector('#steps-in');if(si)si.oninput=e=>setSteps(e.target.value);
@@ -486,6 +503,13 @@ function renderCalendar(){
   const cd=document.getElementById('calday'), dt=parse(selected), c=countDone(selected);
   cd.innerHTML=`<div class="daynav" style="margin-bottom:10px"><h2>${WD[dt.getDay()]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}</h2><span class="streakpill">${c}/${TOTAL}</span></div>${moodHTML(selected).replace('class="card"','class=""')}<div style="height:10px"></div>${habitListHTML(selected).replace(/class="group card"/g,'class="group"').replace(/<\/div><div class="group"/g,'</div><div style="height:12px"></div><div class="group"')}`;
   wireList(cd);
+  const n2=new Date(viewY,viewM+1,0).getDate();let dh='';
+  for(let d2=n2;d2>=1;d2--){const k2=key(viewY,viewM,d2),t=dayData(k2).text||{};const g=(t.grat||'').trim(),a=(t.affirm||'').trim();if(!g&&!a)continue;
+    dh+=`<div class="e"><b>${d2} ${MONTHS[viewM]}</b>${a?`<p class="aff-line"></p>`:''}${g?`<b>Grateful for</b><p class="grat-line"></p>`:''}</div>`;}
+  const dv=document.getElementById('diary');
+  dv.innerHTML=`<div class="eyebrow" style="margin-bottom:10px">Diary · ${MONTHS[viewM]}</div>`+(dh?`<div class="diary">${dh}</div>`:'<p class="hdesc">Nothing written this month yet. Open a day and write your gratitude or affirmation.</p>');
+  let i2=0;const es=dv.querySelectorAll('.e');
+  for(let d2=n2;d2>=1;d2--){const k2=key(viewY,viewM,d2),t=dayData(k2).text||{};const g=(t.grat||'').trim(),a=(t.affirm||'').trim();if(!g&&!a)continue;const el=es[i2++];if(a)el.querySelector('.aff-line').textContent='“'+a+'”';if(g)el.querySelector('.grat-line').textContent=g}
 }
 function renderStats(){
   const root=document.getElementById('v-stats');
@@ -535,7 +559,7 @@ function renderStats(){
     <div class="card notes"><div class="eyebrow" style="margin-bottom:8px">Notes</div><ul>
       <li>Don't worry if you can't do every habit in one day. Finishing at least <b>half</b> of them each day is good progress.</li>
       <li>Start with 4–5 habits, then add more slowly. Use <b>Edit habits</b> on the Today tab to hide ones you don't need or add your own.</li>
-      <li>Write your gratitude and affirmations in your notebook; here, just tick them off.</li>
+      <li>Write your gratitude and affirmation right in the app, or in your notebook and just tick the box. The Calendar tab keeps a diary of everything you write.</li>
       <li>A day counts toward your streak when at least half of your habits (${STREAK_MIN} of ${TOTAL}) are done. If the streak breaks, simply start again the next day. Consistent beats perfect.</li>
       <li>Change the steps goal to suit your body. If you have any medical condition, check with your doctor.</li></ul></div>`;
 }
@@ -545,11 +569,13 @@ function renderLight(){
   document.querySelectorAll('#steps-bar').forEach(e=>e.style.width=pct+'%');
   document.querySelectorAll('#steps-lbl').forEach(e=>e.textContent=Math.round(pct)+'% of goal');
   document.querySelectorAll('#steps-row').forEach(e=>e.classList.toggle('done',pct>=100));
+  activeHabits().filter(h=>h.type==='text').forEach(h=>document.querySelectorAll('#row-'+h.k).forEach(e=>e.classList.toggle('done',isDone(d,h))));
+  const sp=document.querySelector('#v-calendar .streakpill');if(sp&&view==='calendar')sp.textContent=`${c}/${TOTAL}`;
   const dc=document.getElementById('dcount');if(dc)dc.textContent=`${c}/${TOTAL}`;
 }
 function render(){
   const a=document.activeElement;
-  if(a&&a.id==='steps-in'){renderLight();return}
+  if(a&&(a.id==='steps-in'||a.matches&&a.matches('textarea[data-t]'))){renderLight();return}
   if(view==='today')renderToday();
   else if(view==='calendar')renderCalendar();
   else renderStats();
