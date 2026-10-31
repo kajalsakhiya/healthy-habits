@@ -139,13 +139,35 @@ button{font:inherit;color:inherit}
 .insight{background:var(--body-soft);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45}
 .notes ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14px}
 .notes li::marker{color:var(--body)}
+/* affirmation */
+.aff{background:linear-gradient(135deg,var(--mind-soft),var(--body-soft));border:1px solid var(--line)}
+.aff p{font-family:var(--display);font-size:20px;line-height:1.3;margin:6px 0 10px;text-wrap:balance}
+.aff .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.aff .acts .btn{font-size:13px}
+.aff form{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.aff input{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn.primary{background:var(--body);border-color:var(--body);color:#fff}
+.btn.danger{color:var(--m1)}
+/* manage habits */
+.mg{display:flex;flex-direction:column;gap:14px}
+.mg h2{font-size:22px}
+.mg .group{gap:4px}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
+.mrow .hname{font-size:14px}
+.mrow.off .hname,.mrow.off .hdesc{opacity:.5;text-decoration:line-through}
+.mrow .ctl{display:flex;gap:6px;align-items:center}
+.sw{width:40px;height:24px;border-radius:99px;background:var(--track);border:none;position:relative;cursor:pointer;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:left .15s}
+.sw.on{background:var(--gc,var(--body))}.sw.on::after{left:19px}
+.addf{display:grid;gap:8px}
+.addf input,.addf select{font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+.addf .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 /* account */
 .acct{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;font-size:13px;color:var(--muted)}
 .acct .who{display:flex;align-items:center;gap:8px;min-width:0}
 .acct img{width:28px;height:28px;border-radius:50%}
 .acct .who span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.btn.primary{background:var(--body);border-color:var(--body);color:#fff}
 .btn svg{width:16px;height:16px}
 /* tabs */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -199,19 +221,29 @@ const GROUPS={body:{t:'Body',c:'--body',s:'--body-soft'},mind:{t:'Mind',c:'--min
 const MOODS=[{v:1,l:'Rough',f:'M8 16c1-1.5 2.5-2 4-2s3 .5 4 2'},{v:2,l:'Low',f:'M8.5 15.5c1-.8 2.2-1.2 3.5-1.2s2.5.4 3.5 1.2'},{v:3,l:'Okay',f:'M8.5 15h7'},{v:4,l:'Good',f:'M8.5 14c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2'},{v:5,l:'Great',f:'M8 13.5c1 1.6 2.5 2.3 4 2.3s3-.7 4-2.3'}];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const TOTAL=HABITS.length, WATER=8, STREAK_MIN=7;
+const WATER=8;
+const AFFS=['I take care of my body and my mind.','Small steps every day add up to big change.','I am proud of how far I have come.','Today I choose calm over worry.','I deserve rest, water and good food.','I am stronger than my excuses.','My habits shape the person I am becoming.','I let go of what I cannot control.','I am grateful for this day and this body.','Progress, not perfection.','I show up for myself, even on hard days.','My mind is clear and my heart is light.','I have enough time for what matters.','Every breath is a fresh start.','I am becoming healthier one day at a time.'];
+const DEFAULTS={stepsGoal:8000,custom:[],hidden:[],affirmations:[]};
+let affOffset=0;
 const CHECK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const face=m=>`<svg viewBox="0 0 24 24" fill="none" stroke="var(--m${m.v})" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="var(--m${m.v})"/><circle cx="15" cy="10" r=".9" fill="var(--m${m.v})"/><path d="${m.f}"/></svg>`;
 
-let days={}, settings={stepsGoal:8000};
+let days={}, settings={...DEFAULTS};
 const now=new Date();
 const key=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const TODAY=key(now.getFullYear(),now.getMonth(),now.getDate());
-let selected=TODAY, viewY=now.getFullYear(), viewM=now.getMonth(), editingGoal=false, view='today';
+let selected=TODAY, viewY=now.getFullYear(), viewM=now.getMonth(), editingGoal=false, view='today', managing=false;
+function activeHabits(){return HABITS.filter(h=>!(settings.hidden||[]).includes(h.k)).concat((settings.custom||[]).map(c=>({k:c.k,g:c.g||'routine',name:c.name,desc:c.desc||''})))}
+function total(){return activeHabits().length}
+function streakMin(){return Math.max(1,Math.ceil(total()/2))}
+function dayOfYear(k){const d=parse(k);return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)}
+function affList(){return AFFS.concat(settings.affirmations||[])}
+function affFor(k){const l=affList();return l[(dayOfYear(k)+affOffset)%l.length]}
 const parse=k=>{const[a,b,c]=k.split('-').map(Number);return new Date(a,b-1,c)};
 const kOf=dt=>key(dt.getFullYear(),dt.getMonth(),dt.getDate());
 const addDays=(k,n)=>{const d=parse(k);d.setDate(d.getDate()+n);return kOf(d)};
 const fmt=n=>Number(n||0).toLocaleString('en-IN');
+const esc=t=>String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function dayData(k){return days[k]||{done:{},steps:0,water:0,mood:0}}
 function isDone(d,h){
@@ -219,8 +251,8 @@ function isDone(d,h){
   if(h.type==='water') return (d.water||0)>=WATER;
   return !!(d.done&&d.done[h.k]);
 }
-function countDone(k){const d=dayData(k);return HABITS.filter(h=>isDone(d,h)).length}
-function levelColor(n){if(!n)return 'var(--track)';if(n===TOTAL)return 'var(--full)';if(n>=Math.ceil(TOTAL/2))return 'var(--good)';return 'var(--partial)'}
+function countDone(k){const d=dayData(k);return activeHabits().filter(h=>isDone(d,h)).length}
+function levelColor(n){const T=total();if(!n)return 'var(--track)';if(n===T)return 'var(--full)';if(n>=Math.ceil(T/2))return 'var(--good)';return 'var(--partial)'}
 
 /* ---------- storage: local first, Firebase sync when signed in ---------- */
 const firebaseConfig = {
@@ -233,7 +265,7 @@ const firebaseConfig = {
 };
 let fbUser=null, userRef=null, unsub=null; const queue={};
 function setSync(t){document.getElementById('sync').textContent=t}
-function loadLocal(){try{const r=JSON.parse(localStorage.getItem('hhc')||'null');if(r){days=r.days||{};settings={...settings,...(r.settings||{})}}}catch(e){}}
+function loadLocal(){try{const r=JSON.parse(localStorage.getItem('hhc')||'null');if(r){days=r.days||{};settings={...DEFAULTS,...(r.settings||{})}}}catch(e){}}
 function saveLocal(){try{localStorage.setItem('hhc',JSON.stringify({days,settings}))}catch(e){}}
 function write(id,data){
   saveLocal();
@@ -281,7 +313,7 @@ async function startCloud(u){
     days=nd;saveLocal();render();
     if(!snap.metadata.hasPendingWrites)setSync('Saved to your account, available on all your devices.');
   },e=>setSync('Sync error: '+(e.message||e.code)));
-  userRef.collection('meta').doc('settings').onSnapshot(s=>{if(s.exists){settings={stepsGoal:8000,...s.data()};saveLocal();render()}});
+  userRef.collection('meta').doc('settings').onSnapshot(s=>{if(s.exists){settings={...DEFAULTS,...s.data()};saveLocal();render()}});
 }
 function initStore(){
   loadLocal(); render();
@@ -303,15 +335,15 @@ function setSteps(v){const d=ensure(selected);d.steps=Math.max(0,parseInt(v,10)|
 
 /* ---------- stats helpers ---------- */
 function streak(){
-  let n=0,k=TODAY;
-  if(countDone(TODAY)<STREAK_MIN)k=addDays(k,-1);
-  while(countDone(k)>=STREAK_MIN){n++;k=addDays(k,-1)}
+  let n=0,k=TODAY,m=streakMin();
+  if(countDone(TODAY)<m)k=addDays(k,-1);
+  while(countDone(k)>=m){n++;k=addDays(k,-1)}
   return n;
 }
 function longestStreak(){
   const ks=Object.keys(days).filter(k=>k<=TODAY).sort();if(!ks.length)return 0;
-  let best=0,cur=0,k=ks[0];
-  while(k<=TODAY){if(countDone(k)>=STREAK_MIN){cur++;best=Math.max(best,cur)}else cur=0;k=addDays(k,1)}
+  let best=0,cur=0,k=ks[0],m=streakMin();
+  while(k<=TODAY){if(countDone(k)>=m){cur++;best=Math.max(best,cur)}else cur=0;k=addDays(k,1)}
   return best;
 }
 function lastN(n,endK){const out=[];for(let i=n-1;i>=0;i--)out.push(addDays(endK,-i));return out}
@@ -323,7 +355,7 @@ function habitListHTML(k){
   for(const g of Object.keys(GROUPS)){
     const G=GROUPS[g];
     h+=`<div class="group card" style="--gc:var(${G.c});--gsoft:var(${G.s})"><h3>${G.t}</h3>`;
-    for(const hb of HABITS.filter(x=>x.g===g)){
+    for(const hb of activeHabits().filter(x=>x.g===g)){
       const done=isDone(d,hb);
       if(hb.type==='steps'){
         const pct=Math.min(100,(d.steps||0)/settings.stepsGoal*100);
@@ -337,18 +369,62 @@ function habitListHTML(k){
         h+=`<div class="row ${done?'done':''}"><div class="chk" style="margin-top:2px">${CHECK}</div><div>
           <div class="hname">${hb.name}</div><div class="hdesc">${d.water||0} / ${WATER} glasses · ${hb.desc}</div><div class="water">${gl}</div></div></div>`;
       }else{
-        h+=`<button class="habit ${done?'done':''}" data-h="${hb.k}" ${fut?'disabled':''} aria-pressed="${done}"><span class="chk">${CHECK}</span><span><span class="hname">${hb.name}</span><br><span class="hdesc">${hb.desc}</span></span></button>`;
+        h+=`<button class="habit ${done?'done':''}" data-h="${hb.k}" ${fut?'disabled':''} aria-pressed="${done}"><span class="chk">${CHECK}</span><span><span class="hname">${esc(hb.name)}</span><br><span class="hdesc">${esc(hb.desc)}</span></span></button>`;
       }
     }
     h+='</div>';
   }
+  h+=`<div style="text-align:center"><button class="btn" id="manage-btn">✎ Edit habits</button></div>`;
   return h;
+}
+function affHTML(k){
+  const d=dayData(k);
+  return `<div class="card aff"><div class="eyebrow">Today's affirmation</div><p id="aff-text"></p>
+    <div class="acts"><button class="btn" id="aff-next">Another one</button><button class="btn" id="aff-add-btn">+ Add your own</button></div>
+    <form id="aff-form" hidden><input id="aff-in" maxlength="140" placeholder="Write an affirmation…" aria-label="New affirmation"><button class="btn primary" type="submit">Save</button></form></div>`;
+}
+function wireAff(root,k){
+  const t=root.querySelector('#aff-text');if(!t)return;t.textContent='“'+affFor(k)+'”';
+  root.querySelector('#aff-next').onclick=()=>{affOffset++;t.textContent='“'+affFor(k)+'”'};
+  const f=root.querySelector('#aff-form');
+  root.querySelector('#aff-add-btn').onclick=()=>{f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()};
+  f.onsubmit=e=>{e.preventDefault();const v=f.querySelector('input').value.trim();if(!v)return;settings={...settings,affirmations:[...(settings.affirmations||[]),v]};saveSettings();affOffset=affList().length-1-dayOfYear(k);while(affOffset<0)affOffset+=affList().length;f.querySelector('input').value='';f.hidden=true;t.textContent='“'+v+'”'};
+}
+function manageHTML(){
+  let h='<div class="mg"><div class="daynav"><h2>Edit habits</h2><button class="btn primary" id="manage-done">Done</button></div><p class="hdesc">Switch a habit off to hide it from your daily list. Add your own below.</p>';
+  for(const g of Object.keys(GROUPS)){
+    const G=GROUPS[g];
+    h+=`<div class="group card" style="--gc:var(${G.c});--gsoft:var(${G.s})"><h3>${G.t}</h3>`;
+    for(const hb of HABITS.filter(x=>x.g===g)){
+      const off=(settings.hidden||[]).includes(hb.k);
+      h+=`<div class="mrow ${off?'off':''}"><div><div class="hname">${hb.name}</div><div class="hdesc">${hb.desc}</div></div><div class="ctl"><button class="sw ${off?'':'on'}" data-t="${hb.k}" role="switch" aria-checked="${!off}" aria-label="Show ${hb.name}"></button></div></div>`;
+    }
+    for(const c of (settings.custom||[]).filter(x=>(x.g||'routine')===g)){
+      h+=`<div class="mrow"><div><div class="hname"></div><div class="hdesc"></div></div><div class="ctl"><button class="btn danger" data-del="${c.k}">Remove</button></div></div>`;
+    }
+    h+='</div>';
+  }
+  h+=`<div class="card"><div class="eyebrow" style="margin-bottom:8px">Add a habit</div><form class="addf" id="add-form">
+    <input id="add-name" maxlength="40" placeholder="Habit name (e.g. No sugar after 6pm)" required aria-label="Habit name">
+    <input id="add-desc" maxlength="80" placeholder="Short note (optional)" aria-label="Habit note">
+    <div class="r"><select id="add-group" aria-label="Group"><option value="body">Body</option><option value="mind">Mind</option><option value="routine" selected>Routine</option></select><button class="btn primary" type="submit">Add</button></div></form></div></div>`;
+  return h;
+}
+function wireManage(root){
+  root.querySelector('#manage-done').onclick=()=>{managing=false;render()};
+  root.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const k=b.dataset.t;const hid=new Set(settings.hidden||[]);hid.has(k)?hid.delete(k):hid.add(k);settings={...settings,hidden:[...hid]};saveSettings();render()});
+  root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{settings={...settings,custom:(settings.custom||[]).filter(c=>c.k!==b.dataset.del)};saveSettings();render()});
+  // custom names via textContent (user text)
+  const cs=settings.custom||[];let i=0;
+  root.querySelectorAll('.mrow [data-del]').forEach(b=>{const c=cs.find(x=>x.k===b.dataset.del);const row=b.closest('.mrow');row.querySelector('.hname').textContent=c.name;row.querySelector('.hdesc').textContent=c.desc||''});
+  root.querySelector('#add-form').onsubmit=e=>{e.preventDefault();const name=root.querySelector('#add-name').value.trim();if(!name)return;const c={k:'c_'+Date.now().toString(36),name,desc:root.querySelector('#add-desc').value.trim(),g:root.querySelector('#add-group').value};settings={...settings,custom:[...(settings.custom||[]),c]};saveSettings();render()};
 }
 function moodHTML(k){
   const d=dayData(k), fut=k>TODAY;
   return `<div class="card"><div class="eyebrow">How do you feel?</div><div class="moods">${MOODS.map(m=>`<button class="mood ${d.mood===m.v?'sel':''}" style="--mc:var(--m${m.v})" data-m="${m.v}" ${fut?'disabled':''} aria-pressed="${d.mood===m.v}">${face(m)}${m.l}</button>`).join('')}</div></div>`;
 }
 function wireList(root){
+  const mb=root.querySelector('#manage-btn');if(mb)mb.onclick=()=>{managing=true;if(view!=='today'){view='today';['today','calendar','stats'].forEach(n=>document.getElementById('v-'+n).hidden=n!=='today');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v==='today'))}render();window.scrollTo(0,0)};
   root.querySelectorAll('.habit').forEach(b=>b.onclick=()=>toggle(b.dataset.h));
   root.querySelectorAll('.glass').forEach(b=>b.onclick=()=>setWater(+b.dataset.w));
   root.querySelectorAll('.mood').forEach(b=>b.onclick=()=>setMood(+b.dataset.m));
@@ -360,20 +436,23 @@ function wireList(root){
 
 function renderToday(){
   const root=document.getElementById('v-today');
-  const k=selected, dt=parse(k), c=countDone(k), s=streak();
+  if(managing){root.innerHTML=manageHTML();wireManage(root);return}
+  const k=selected, dt=parse(k), c=countDone(k), s=streak(), TOTAL=total(), STREAK_MIN=streakMin();
   const title=k===TODAY?'Today':k===addDays(TODAY,-1)?'Yesterday':WD[dt.getDay()];
   root.innerHTML=`
     <div class="hero"><div><h1>${title}</h1><p>${WD[dt.getDay()]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}</p></div><span class="streakpill">🔥 ${s} day${s===1?'':'s'}</span></div>
     <div class="daynav"><button id="dprev" aria-label="Previous day">‹</button>${k!==TODAY?'<button id="dtoday">Back to today</button>':'<span></span>'}<button id="dnext" aria-label="Next day" ${k>=TODAY?'disabled':''}>›</button></div>
     <div class="card ringbig"><div class="ring" style="--p:${c/TOTAL*100};--c:${levelColor(c)}"><i id="dcount">${c}/${TOTAL}</i></div><div><b>${c===TOTAL?'All done!':c>=STREAK_MIN?'Good day':c?'Keep going':'Let\'s start'}</b><span>${c===TOTAL?'Every habit ticked off.':`${TOTAL-c} habit${TOTAL-c===1?'':'s'} left. ${STREAK_MIN} or more keeps your streak.`}</span></div></div>
+    ${affHTML(k)}
     ${moodHTML(k)}
     ${habitListHTML(k)}`;
-  wireList(root);
+  wireList(root);wireAff(root,k);
   root.querySelector('#dprev').onclick=()=>{selected=addDays(selected,-1);editingGoal=false;render()};
   root.querySelector('#dnext').onclick=()=>{if(selected<TODAY){selected=addDays(selected,1);editingGoal=false;render()}};
   const bt=root.querySelector('#dtoday');if(bt)bt.onclick=()=>{selected=TODAY;render()};
 }
 function renderCalendar(){
+  const TOTAL=total();
   document.getElementById('cal-title').textContent=`${MONTHS[viewM]} ${viewY}`;
   const first=new Date(viewY,viewM,1), lead=(first.getDay()+6)%7, n=new Date(viewY,viewM+1,0).getDate();
   let h='';
@@ -391,12 +470,13 @@ function renderCalendar(){
 }
 function renderStats(){
   const root=document.getElementById('v-stats');
+  const TOTAL=total(), STREAK_MIN=streakMin(), HL=activeHabits();
   const last30=lastN(30,TODAY), logged=last30.filter(k=>days[k]);
   const compl=last30.reduce((a,k)=>a+countDone(k),0)/(30*TOTAL)*100;
   const good=last30.filter(k=>countDone(k)>=STREAK_MIN).length;
   const perfect=last30.filter(k=>countDone(k)===TOTAL).length;
   // per-habit %
-  const per=HABITS.map(h=>({h,p:last30.filter(k=>isDone(dayData(k),h)).length/30*100})).sort((a,b)=>b.p-a.p);
+  const per=HL.map(h=>({h,p:last30.filter(k=>isDone(dayData(k),h)).length/30*100})).sort((a,b)=>b.p-a.p);
   // mood graph, last 14 days
   const m14=lastN(14,TODAY), W=640,H=200,L=34,B=28,T=16;
   const x=i=>L+i*((W-L-12)/13), y=v=>T+(H-T-B)*(1-(v-1)/4);
@@ -431,16 +511,17 @@ function renderStats(){
     </div>
     <div class="card"><div class="eyebrow">Mood, last 14 days</div><div class="chart" style="margin-top:8px">${svg}</div><div class="insight" style="margin-top:12px">${ins}</div></div>
     <div class="card"><div class="eyebrow">Habits, last 30 days</div>
-      ${logged.length?`<p style="margin:8px 0 0;font-size:14px;color:var(--muted)">Strongest: <b style="color:var(--ink)">${best.h.name}</b>. Needs attention: <b style="color:var(--ink)">${worst.h.name}</b>.</p>`:'<p style="margin:8px 0 0;font-size:14px;color:var(--muted)">Nothing logged yet. Tick a few habits on the Today tab.</p>'}
-      <div class="hbars">${per.map(({h,p})=>`<div class="hbar"><div><div>${h.name}</div><div class="t"><div style="width:${p}%;background:var(${GROUPS[h.g].c})"></div></div></div><b>${Math.round(p)}%</b></div>`).join('')}</div></div>
+      ${logged.length?`<p style="margin:8px 0 0;font-size:14px;color:var(--muted)">Strongest: <b style="color:var(--ink)">${esc(best.h.name)}</b>. Needs attention: <b style="color:var(--ink)">${esc(worst.h.name)}</b>.</p>`:'<p style="margin:8px 0 0;font-size:14px;color:var(--muted)">Nothing logged yet. Tick a few habits on the Today tab.</p>'}
+      <div class="hbars">${per.map(({h,p})=>`<div class="hbar"><div><div>${esc(h.name)}</div><div class="t"><div style="width:${p}%;background:var(${GROUPS[h.g].c})"></div></div></div><b>${Math.round(p)}%</b></div>`).join('')}</div></div>
     <div class="card notes"><div class="eyebrow" style="margin-bottom:8px">Notes</div><ul>
       <li>Don't worry if you can't do every habit in one day. Finishing at least <b>half</b> of them each day is good progress.</li>
-      <li>Start with 4–5 habits, then add more slowly.</li>
+      <li>Start with 4–5 habits, then add more slowly. Use <b>Edit habits</b> on the Today tab to hide ones you don't need or add your own.</li>
       <li>Write your gratitude and affirmations in your notebook; here, just tick them off.</li>
-      <li>A day counts toward your streak when ${STREAK_MIN} or more habits are done. If the streak breaks, simply start again the next day. Consistent beats perfect.</li>
+      <li>A day counts toward your streak when at least half of your habits (${STREAK_MIN} of ${TOTAL}) are done. If the streak breaks, simply start again the next day. Consistent beats perfect.</li>
       <li>Change the steps goal to suit your body. If you have any medical condition, check with your doctor.</li></ul></div>`;
 }
 function renderLight(){
+  const TOTAL=total();
   const d=dayData(selected), c=countDone(selected), pct=Math.min(100,(d.steps||0)/settings.stepsGoal*100);
   document.querySelectorAll('#steps-bar').forEach(e=>e.style.width=pct+'%');
   document.querySelectorAll('#steps-lbl').forEach(e=>e.textContent=Math.round(pct)+'% of goal');
@@ -459,7 +540,7 @@ function showView(v){
   ['today','calendar','stats'].forEach(n=>document.getElementById('v-'+n).hidden=n!==v);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
   if(v==='calendar'){const dt=parse(selected);viewY=dt.getFullYear();viewM=dt.getMonth()}
-  editingGoal=false;render();window.scrollTo(0,0);
+  editingGoal=false;managing=false;render();window.scrollTo(0,0);
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showView(t.dataset.v));
 document.getElementById('prev').onclick=()=>{viewM--;if(viewM<0){viewM=11;viewY--}render()};
