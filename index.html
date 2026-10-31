@@ -147,6 +147,13 @@ button{font:inherit;color:inherit}
 .diary .e b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .diary .e p{margin:0;white-space:pre-wrap;line-height:1.45}
 .diary .e p+b{margin-top:8px}
+details.ex{margin-top:8px;font-size:13px}
+details.ex summary{cursor:pointer;color:var(--mind);font-weight:600;list-style:none}
+details.ex summary::before{content:"▸ ";}details.ex[open] summary::before{content:"▾ "}
+.exb{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px dashed var(--line)}
+.exb p{margin:0 0 6px;white-space:pre-wrap;line-height:1.5}
+.exb .ex-gu{color:var(--muted)}
+.exb .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 /* affirmation */
 .aff{background:linear-gradient(135deg,var(--mind-soft),var(--body-soft));border:1px solid var(--line)}
 .aff p{font-family:var(--display);font-size:20px;line-height:1.3;margin:6px 0 10px;text-wrap:balance}
@@ -249,6 +256,16 @@ const AFFS=[
   {en:'Every breath is a fresh start.',gu:'દરેક શ્વાસ એક નવી શરૂઆત છે.'},
   {en:'I am becoming healthier one day at a time.',gu:'હું રોજ થોડી થોડી વધુ સ્વસ્થ બની રહી છું.'}
 ];
+const GRATS=[
+  {en:'1. My morning chai and a quiet few minutes\n2. A friend who called just to check on me\n3. My legs that carried me through today\'s walk',gu:'૧. સવારની ચા અને થોડી શાંત ક્ષણો\n૨. મિત્ર જેણે ફક્ત ખબર પૂછવા ફોન કર્યો\n૩. મારા પગ જેણે આજે ચાલવામાં સાથ આપ્યો'},
+  {en:'1. A warm home-cooked meal\n2. Sunlight on my face this morning\n3. Finishing one thing I had been putting off',gu:'૧. ઘરનું ગરમ ભોજન\n૨. સવારે ચહેરા પર પડેલો તડકો\n૩. ટાળતી હતી તે એક કામ પૂરું કર્યું'},
+  {en:'1. My family\'s laughter at dinner\n2. Clean water whenever I need it\n3. A good night\'s sleep',gu:'૧. જમતી વખતે પરિવારનું હાસ્ય\n૨. જ્યારે જોઈએ ત્યારે સ્વચ્છ પાણી\n૩. રાતની સારી ઊંઘ'},
+  {en:'1. A book that made me think\n2. Someone who held the door for me\n3. My health, which lets me try again tomorrow',gu:'૧. એક પુસ્તક જેણે વિચારતી કરી\n૨. કોઈએ મારા માટે દરવાજો પકડી રાખ્યો\n૩. મારું સ્વાસ્થ્ય, જે કાલે ફરી પ્રયત્ન કરવા દે છે'},
+  {en:'1. The rain and the smell of wet earth\n2. A kind word from a colleague\n3. Time to sit and breathe',gu:'૧. વરસાદ અને ભીની માટીની સુગંધ\n૨. સહકર્મીનો એક મીઠો શબ્દ\n૩. બેસીને શ્વાસ લેવાનો સમય'},
+  {en:'1. My mother\'s advice\n2. A song that lifted my mood\n3. Having work that pays the bills',gu:'૧. મમ્મીની સલાહ\n૨. એક ગીત જેણે મૂડ સારો કર્યો\n૩. કામ જે ઘર ચલાવે છે'},
+  {en:'1. A small win at work today\n2. Fresh fruit in the kitchen\n3. Friends I can be myself with',gu:'૧. આજે કામમાં એક નાની જીત\n૨. રસોડામાં તાજાં ફળ\n૩. મિત્રો જેમની સાથે હું હું રહી શકું'}
+];
+let gratOffset=0;
 const DEFAULTS={stepsGoal:8000,custom:[],hidden:[],affirmations:[]};
 let affOffset=0;
 const CHECK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -264,6 +281,7 @@ function total(){return activeHabits().length}
 function streakMin(){return Math.max(1,Math.ceil(total()/2))}
 function dayOfYear(k){const d=parse(k);return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)}
 function affList(){return AFFS.concat((settings.affirmations||[]).map(a=>typeof a==='string'?{en:a,gu:''}:a))}
+function gratFor(k){return GRATS[(dayOfYear(k)+gratOffset)%GRATS.length]}
 function affFor(k){const l=affList();return l[(dayOfYear(k)+affOffset)%l.length]}
 const parse=k=>{const[a,b,c]=k.split('-').map(Number);return new Date(a,b-1,c)};
 const kOf=dt=>key(dt.getFullYear(),dt.getMonth(),dt.getDate());
@@ -396,7 +414,8 @@ function habitListHTML(k){
         const val=(d.text&&d.text[hb.k])||'';
         h+=`<div class="row ${done?'done':''}" id="row-${hb.k}"><button class="chk tap" data-h="${hb.k}" aria-label="Tick ${hb.name}" ${fut?'disabled':''}>${CHECK}</button><div>
           <div class="hname">${hb.name}</div><div class="hdesc">${hb.desc}</div>
-          <textarea id="txt-${hb.k}" data-t="${hb.k}" rows="3" placeholder="${hb.ph}" ${fut?'disabled':''} aria-label="${hb.name}">${esc(val)}</textarea></div></div>`;
+          <textarea id="txt-${hb.k}" data-t="${hb.k}" rows="3" placeholder="${hb.ph}" ${fut?'disabled':''} aria-label="${hb.name}">${esc(val)}</textarea>
+          ${hb.k==='grat'?`<details class="ex"><summary>Need ideas? See an example</summary><div class="exb"><p class="ex-en"></p><p class="ex-gu"></p><div class="acts"><button type="button" class="btn" data-exnext>Another example</button><button type="button" class="btn" data-exuse ${fut?'disabled':''}>Use this as a start</button></div></div></details>`:''}</div></div>`;
       }else if(hb.type==='water'){
         let gl='';for(let i=1;i<=WATER;i++)gl+=`<button class="glass ${i<=(d.water||0)?'full':''}" data-w="${i}" ${fut?'disabled':''} aria-label="Glass ${i}"></button>`;
         h+=`<div class="row ${done?'done':''}"><div class="chk" style="margin-top:2px">${CHECK}</div><div>
@@ -462,6 +481,10 @@ function wireList(root){
   const mb=root.querySelector('#manage-btn');if(mb)mb.onclick=()=>{managing=true;if(view!=='today'){view='today';['today','calendar','stats'].forEach(n=>document.getElementById('v-'+n).hidden=n!=='today');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v==='today'))}render();window.scrollTo(0,0)};
   root.querySelectorAll('.habit,.chk.tap').forEach(b=>b.onclick=()=>toggle(b.dataset.h));
   root.querySelectorAll('textarea[data-t]').forEach(t=>t.oninput=e=>setText(t.dataset.t,e.target.value));
+  const ex=root.querySelector('details.ex');
+  if(ex){const en=ex.querySelector('.ex-en'),gu=ex.querySelector('.ex-gu');const showEx=()=>{const g=gratFor(selected);en.textContent=g.en;gu.textContent=g.gu};showEx();
+    ex.querySelector('[data-exnext]').onclick=()=>{gratOffset++;showEx()};
+    ex.querySelector('[data-exuse]').onclick=()=>{const ta=root.querySelector('#txt-grat');if(ta.value.trim()&&!ta.value.includes(gratFor(selected).en)){ta.value=ta.value.trimEnd()+'\n'+gratFor(selected).en}else ta.value=gratFor(selected).en;setText('grat',ta.value);ta.focus()};}
   root.querySelectorAll('.glass').forEach(b=>b.onclick=()=>setWater(+b.dataset.w));
   root.querySelectorAll('.mood').forEach(b=>b.onclick=()=>setMood(+b.dataset.m));
   const si=root.querySelector('#steps-in');if(si)si.oninput=e=>setSteps(e.target.value);
